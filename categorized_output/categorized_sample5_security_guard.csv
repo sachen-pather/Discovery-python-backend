@@ -1,0 +1,16 @@
+Date,Description,Amount (ZAR),Balance (ZAR),Category
+2025-07-01,Opening Balance,,75.0,Administrative
+2025-07-01,Account Maintenance Fee,-5.0,70.0,Administrative
+2025-07-05,Salary – Guard Services,4000.0,4070.0,Other
+2025-07-06,Rent – Room,-1200.0,2870.0,Rent/Mortgage
+2025-07-08,Vodacom Airtime,-30.0,2840.0,Subscriptions
+2025-07-10,ATM Withdrawal,-300.0,2540.0,Other
+2025-07-10,ATM Fee,-2.0,2538.0,Administrative
+2025-07-12,Overtime Pay,500.0,3038.0,Other
+2025-07-13,Shoprite Groceries,-800.0,2238.0,Groceries
+2025-07-17,Prepaid Electricity,-150.0,2088.0,Subscriptions
+2025-07-20,Local Taxi Fare,-120.0,1968.0,Transport
+2025-07-22,Funeral Insurance,-60.0,1908.0,Subscriptions
+2025-07-24,ATM Withdrawal,-300.0,1608.0,Other
+2025-07-24,ATM Fee,-2.0,1606.0,Administrative
+2025-07-28,Pick n Pay Groceries,-400.0,1206.0,Other
