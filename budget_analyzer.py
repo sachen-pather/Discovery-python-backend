@@ -386,7 +386,7 @@ Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         
         # Add calculation assumptions
         report_content += "**Calculation Assumptions:**\n"
-        report_content += "• 8% annual return (compounded monthly)\n"
+        report_content += "• 6.75% annual return (compounded monthly)\n"
         report_content += "• Fixed monthly contributions at month-end\n"
         report_content += "• No taxes considered (use TFSA or retirement annuity for tax benefits)\n"
         report_content += "• Returns are estimates based on historical averages\n\n"
