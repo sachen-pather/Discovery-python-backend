@@ -1,9 +1,17 @@
+# budget_analyzer.py - Your original file with minimal additions for new features
 import pandas as pd
 import glob
 import os
 from datetime import datetime
 import re
 import math
+
+# Import the enhanced optimizer (optional - graceful fallback if not available)
+try:
+    from enhanced_budget_analyzer import generate_enhanced_cost_cutting_suggestions
+    ENHANCED_AVAILABLE = True
+except ImportError:
+    ENHANCED_AVAILABLE = False
 
 # Configuration
 CATEGORIZED_DATA_DIR = os.path.join(os.path.dirname(__file__), "categorized_output")
@@ -276,13 +284,30 @@ def generate_budget_report(filepath):
         # Calculate budget analysis
         analysis = calculate_budget_analysis(df, amount_col, desc_col, category_col)
         
-        # Generate cost-cutting suggestions
-        suggestions = generate_cost_cutting_suggestions(
-            analysis['category_breakdown'], 
-            analysis['total_expenses']
-        )
+        # NEW: Try to use enhanced suggestions if available, otherwise use original
+        enhanced_mode = False
+        action_plan = None
         
-        # Create report content
+        if ENHANCED_AVAILABLE:
+            try:
+                enhanced_suggestions, total_potential_savings, action_plan = generate_enhanced_cost_cutting_suggestions(
+                    analysis['category_breakdown'], 
+                    analysis['total_income'],
+                    analysis['total_expenses']
+                )
+                suggestions = enhanced_suggestions
+                enhanced_mode = True
+                print(f"✅ Using enhanced suggestions for {os.path.basename(filepath)}")
+            except Exception as e:
+                print(f"⚠️ Enhanced suggestions failed for {os.path.basename(filepath)}, using basic: {e}")
+                suggestions = generate_cost_cutting_suggestions(analysis['category_breakdown'], analysis['total_expenses'])
+                total_potential_savings = sum(s.get('potential_savings', 0) for s in suggestions.values() if isinstance(s, dict))
+        else:
+            # Use original cost cutting suggestions
+            suggestions = generate_cost_cutting_suggestions(analysis['category_breakdown'], analysis['total_expenses'])
+            total_potential_savings = sum(s.get('potential_savings', 0) for s in suggestions.values() if isinstance(s, dict))
+        
+        # Create report content (keeping your original format)
         filename = os.path.basename(filepath).replace('categorized_', '').replace('.csv', '')
         report_content = f"""
 # BUDGET ANALYSIS REPORT
@@ -311,27 +336,71 @@ Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                 report_content += f"**{category}:** R {data['amount']:,.2f} ({data['percentage']:.1f}%)\n"
         
         report_content += "\n═══════════════════════════════════════════════════════════════\n\n"
-        report_content += "## 💡 BUDGET OPTIMIZATION SUGGESTIONS\n\n"
         
-        # Add cost-cutting suggestions
-        total_potential_savings = 0
+        # NEW: Add enhanced sections if available
+        if enhanced_mode and action_plan:
+            report_content += "## 🎯 SMART BUDGET OPTIMIZATION\n"
+            report_content += "### Based on South African household spending patterns\n\n"
+            
+            # Add action plan sections
+            if action_plan.get('immediate_actions'):
+                report_content += "**🔥 IMMEDIATE ACTIONS (High Impact):**\n"
+                for action in action_plan['immediate_actions']:
+                    report_content += f"• {action}\n"
+                report_content += "\n"
+            
+            if action_plan.get('short_term_goals'):
+                report_content += "**📅 SHORT-TERM GOALS (1-3 months):**\n"
+                for action in action_plan['short_term_goals']:
+                    report_content += f"• {action}\n"
+                report_content += "\n"
+            
+            if action_plan.get('long_term_goals'):
+                report_content += "**🎯 LONG-TERM GOALS (3+ months):**\n"
+                for action in action_plan['long_term_goals']:
+                    report_content += f"• {action}\n"
+                report_content += "\n"
+            
+            report_content += "═══════════════════════════════════════════════════════════════\n\n"
+            report_content += "## 💡 DETAILED OPTIMIZATION BREAKDOWN\n\n"
+        else:
+            report_content += "## 💡 BUDGET OPTIMIZATION SUGGESTIONS\n\n"
+        
+        # Add cost-cutting suggestions (works for both enhanced and original)
         for category, suggestion_data in suggestions.items():
             if suggestion_data != "No expenses in this category." and isinstance(suggestion_data, dict):
                 if suggestion_data['current_amount'] > 0:
-                    report_content += f"### {category}\n"
+                    # NEW: Add priority emoji if enhanced mode
+                    if enhanced_mode and 'priority' in suggestion_data:
+                        priority_emoji = "🔥" if suggestion_data['priority'] >= 4 else "📅" if suggestion_data['priority'] >= 3 else "🎯"
+                        report_content += f"### {priority_emoji} {category}\n"
+                    else:
+                        report_content += f"### {category}\n"
+                    
                     report_content += f"Current: R {suggestion_data['current_amount']:,.2f}\n"
                     report_content += f"Potential Savings: R {suggestion_data['potential_savings']:,.2f}\n"
-                    for suggestion in suggestion_data['suggestions']:
+                    
+                    # NEW: Add confidence level if enhanced mode
+                    if enhanced_mode and 'confidence_level' in suggestion_data:
+                        report_content += f"Confidence: {suggestion_data['confidence_level']}\n"
+                    
+                    # Handle both list and string suggestions
+                    suggestion_list = suggestion_data['suggestions']
+                    if isinstance(suggestion_list, str):
+                        suggestion_list = [suggestion_list]
+                    elif not isinstance(suggestion_list, list):
+                        suggestion_list = [str(suggestion_list)]
+                    
+                    for suggestion in suggestion_list:
                         report_content += f"• {suggestion}\n"
                     report_content += "\n"
-                    total_potential_savings += suggestion_data['potential_savings']
         
         report_content += "═══════════════════════════════════════════════════════════════\n\n"
         report_content += f"## 🎯 TOTAL POTENTIAL MONTHLY SAVINGS: R {total_potential_savings:,.2f}\n"
         report_content += f"**New Available Income:** R {analysis['available_income'] + total_potential_savings:,.2f}\n"
         report_content += f"**Improved Savings Rate:** {((analysis['available_income'] + total_potential_savings) / analysis['total_income'] * 100) if analysis['total_income'] > 0 else 0:.1f}%\n\n"
         
-        # Add Savings Annuity Calculator
+        # Add Savings Annuity Calculator (keeping your original section)
         report_content += "═══════════════════════════════════════════════════════════════\n\n"
         report_content += "## 💰 SAVINGS GROWTH CALCULATOR\n"
         report_content += "### Monthly Savings Annuity Projections\n\n"
@@ -360,14 +429,14 @@ Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
             report_content += "|-------|----------------|-------------|-------------|----------------|------------------|\n"
             
             for years, result in optimized_annuity_results.items():
-                current_result = current_annuity_results.get(years, {'final_value': 0})
+                current_result = current_annuity_results.get(years, {'final_value': 0}) if current_monthly_savings > 0 else {'final_value': 0}
                 extra_value = result['final_value'] - current_result['final_value']
                 
                 report_content += f"| {years:2d} | R {result['monthly_payment']:,.2f} | R {result['total_contributions']:,.2f} | R {result['final_value']:,.2f} | R {result['interest_earned']:,.2f} | R {extra_value:,.2f} |\n"
             
             report_content += "\n"
         
-        # Add some key insights
+        # Add some key insights (keeping your original)
         if current_monthly_savings > 0:
             # Get 10-year result for insights
             ten_year_result = current_annuity_results.get(10, {})
@@ -384,14 +453,14 @@ Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                 
                 report_content += "\n"
         
-        # Add calculation assumptions
+        # Add calculation assumptions (keeping your original)
         report_content += "**Calculation Assumptions:**\n"
-        report_content += "• 6.75% annual return (compounded monthly)\n"
+        report_content += "• 8% annual return (compounded monthly)\n"
         report_content += "• Fixed monthly contributions at month-end\n"
         report_content += "• No taxes considered (use TFSA or retirement annuity for tax benefits)\n"
         report_content += "• Returns are estimates based on historical averages\n\n"
         
-        # Financial health assessment
+        # Financial health assessment (keeping your original)
         savings_rate = (analysis['available_income'] / analysis['total_income'] * 100) if analysis['total_income'] > 0 else 0
         
         report_content += "## 📈 FINANCIAL HEALTH ASSESSMENT\n\n"
@@ -405,10 +474,15 @@ Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         else:
             report_content += "🔴 **Alert:** Spending more than you earn. Immediate action required.\n"
         
+        # NEW: Return additional data for API endpoints
         return {
             'content': report_content,
             'filename': filename,
-            'analysis': analysis
+            'analysis': analysis,
+            'suggestions': suggestions,
+            'total_potential_savings': total_potential_savings,
+            'enhanced_mode': enhanced_mode,
+            'action_plan': action_plan
         }
         
     except Exception as e:
@@ -418,6 +492,8 @@ Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 def main():
     """Process all categorized CSV files and generate budget reports."""
     print("📊 Budget Analysis Report Generator")
+    if ENHANCED_AVAILABLE:
+        print("🚀 Enhanced optimization features available!")
     print("=" * 60)
     
     # Find categorized CSV files
@@ -447,7 +523,8 @@ def main():
             with open(report_path, 'w', encoding='utf-8') as f:
                 f.write(report['content'])
             
-            print(f"✅ Report saved: {report_filename}")
+            enhancement_note = " (Enhanced)" if report.get('enhanced_mode') else ""
+            print(f"✅ Report saved: {report_filename}{enhancement_note}")
             successful_reports += 1
         else:
             print(f"❌ Failed to generate report for {os.path.basename(filepath)}")
@@ -466,7 +543,7 @@ def main():
         sample_file = csv_files[0]
         sample_report = generate_budget_report(sample_file)
         if sample_report:
-            # Show first 20 lines of the report
+            # Show first 25 lines of the report
             lines = sample_report['content'].split('\n')[:25]
             print('\n'.join(lines))
             if len(sample_report['content'].split('\n')) > 25:

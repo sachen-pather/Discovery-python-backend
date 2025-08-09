@@ -1,0 +1,5 @@
+name,balance,apr,min_payment,kind
+Credit Card,8500.00,0.22,200.00,credit_card
+Personal Loan,15000.00,0.16,450.00,personal_loan
+Store Account,3200.00,0.24,150.00,credit_card
+Overdraft,2500.00,0.18,100.00,overdraft
