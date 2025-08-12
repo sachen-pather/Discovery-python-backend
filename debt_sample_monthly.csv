@@ -1,0 +1,20 @@
+Date,Description,Amount (ZAR),Balance (ZAR)
+2025-07-01,Opening Balance,,150
+2025-07-01,Account Maintenance Fee,-5,145
+2025-07-01,Salary – Acme Co,22000,22145
+2025-07-03,Shoprite Groceries,-3950,18195
+2025-07-04,ATM Withdrawal,-500,17695
+2025-07-04,ATM Fee,-2,17693
+2025-07-05,Prepaid Electricity,-800,16893
+2025-07-05,Vodacom Airtime,-200,16693
+2025-07-10,KFC Takeaway,-200,16493
+2025-07-15,Funeral Insurance,-60,16433
+2025-07-17,Pick n Pay Groceries,-1350,15083
+2025-07-20,Pep Stores Clothing,-120,14963
+2025-07-24,ATM Withdrawal,-300,14663
+2025-07-24,ATM Fee,-2,14661
+2025-07-25,Local Taxi Fare,-180,14481
+2025-07-26,Money Transfer – Family,-1500,12981
+2025-07-31,Monthly Payment – Mortgage (mortgage),-9000,3981
+2025-07-31,Monthly Payment – Credit Card (credit_card),-750,3231
+2025-07-31,Monthly Payment – Personal Loan (personal_loan),-1200,2031

@@ -1,0 +1,229 @@
+COMPLETE AI PROMPT
+==================================================
+
+Extract bank statement transaction data from the following text and convert it to CSV format.
+
+PRIVACY NOTE: Personal information has been filtered out for privacy protection.
+Focus only on extracting transaction data (dates, descriptions, amounts, balances).
+
+Required CSV format (exact headers):
+Date,Description,Amount (ZAR),Balance (ZAR)
+
+Rules:
+1. Date format: YYYY-MM-DD
+2. Amount: positive for income/credits, negative for expenses/debits, empty string for opening balance
+3. Balance: always show the balance amount
+4. Description: clean transaction description (ignore privacy placeholders)
+5. Include opening balance row if present
+6. Only return the CSV data, no explanations
+7. Ignore lines with [ACCOUNT_NUMBER], [PERSONAL_INFO_REMOVED], etc.
+
+Example output format:
+Date,Description,Amount (ZAR),Balance (ZAR)
+2025-07-01,Opening Balance,,150.0
+2025-07-01,Account Maintenance Fee,-5.0,145.0
+2025-07-01,Salary – Acme Co,5600.0,5745.0
+
+Bank statement text (privacy filtered):
+[PERSONAL_INFO_REMOVED]
+
+From: 2025-05-09   To: 2025-08-09
+Account Type
+[PERSONAL_INFO_REMOVED]
+
+Balance
+Credit Card Account
+[ACCOUNT_NUMBER]
+
+R 73,865.37-
+Vitality Savings Account
+[ACCOUNT_NUMBER]
+
+R 83.34
+Total Closing Balance
+R 73,782.03-
+1 Discovery Place, Sandhurst, Sandton, PO Box [BRANCH_CODE], Sandton, 2196 | 0800 07 96 97
+Discovery Bank Limited. Registration number 2015/[BRANCH_CODE]/06. An authorised financial services and registered credit provider.
+FSP number 48657. NCR registration number [BANK_CODE]. VAT registration number [ACCOUNT_NUMBER]. Limits, terms and conditions apply.
+[PERSONAL_INFO_REMOVED]
+
+From: 2025-05-09   To: 2025-08-09
+Account type: Credit Card Account
+
+[PERSONAL_INFO_REMOVED]
+Date
+Description
+Debit
+Credit
+Balance
+[ACCOUNT_NUMBER]
+Monthly facility fee
+R 50.00
+R 73,190.00-
+[ACCOUNT_NUMBER]
+Interest Charged at 21.50%
+R 1,335.96
+R 74,525.96-
+[ACCOUNT_NUMBER]
+Monthly Account fee
+R 70.00
+R 74,595.96-
+[ACCOUNT_NUMBER]
+Vitality Money Premium
+R 45.00
+R 74,640.96-
+[ACCOUNT_NUMBER]
+ENGEN MALVERN CONV CEN Durban
+R 200.00
+R 74,840.96-
+[ACCOUNT_NUMBER]
+AL [BANK_CODE] TONGAAT
+R 450.00
+R 75,290.96-
+[ACCOUNT_NUMBER]
+ENGEN MALVERN CONV CEN Durban
+R 311.27
+R 75,602.23-
+[ACCOUNT_NUMBER]
+Total Riverhorse Sth C KZ
+R 100.00
+R 75,702.23-
+[ACCOUNT_NUMBER]
+Total Riverhorse Sth C KZ
+R 500.05
+R 76,202.28-
+[ACCOUNT_NUMBER]
+[BANK_CODE] [BANK_CODE] [BANK_CODE] [BANK_CODE]
+R 200.00
+R 76,402.28-
+[ACCOUNT_NUMBER]
+DISCBANK [ACCOUNT_NUMBER]/2
+R 3,732.05
+R 72,670.23-
+[ACCOUNT_NUMBER]
+VITALITY [BANK_CODE]
+R 1,378.00
+R 74,048.23-
+[ACCOUNT_NUMBER]
+WOOLWORTHS MALVERN
+R 432.45
+R 74,480.68-
+[ACCOUNT_NUMBER]
+WOOLWORTHS [BANK_CODE]
+R 359.97
+R 74,840.65-
+[ACCOUNT_NUMBER]
+AE RED HILL FC [BANK_CODE]
+R 500.00
+R 75,340.65-
+[ACCOUNT_NUMBER]
+PayShap Sach
+R 4,000.00
+R 79,340.65-
+[ACCOUNT_NUMBER]
+PayShap payment fee
+R 20.00
+R 79,360.65-
+[ACCOUNT_NUMBER]
+MCD Redhill (0541) Gauteng
+R 131.30
+R 79,491.95-
+[ACCOUNT_NUMBER]
+Gateway E P UMHLANGA ROCK
+R 12.00
+R 79,503.95-
+[ACCOUNT_NUMBER]
+Declined Dom Card Purch
+R 79,503.95-
+[ACCOUNT_NUMBER]
+Txn Declined Fee Dischem Malvern Park
+R 4.00
+R 79,507.95-
+[ACCOUNT_NUMBER]
+Monthly facility fee
+R 50.00
+R 79,557.95-
+[ACCOUNT_NUMBER]
+Interest Charged at 21.25%-21.50%
+R 1,380.84
+R 80,938.79-
+[ACCOUNT_NUMBER]
+Monthly Account fee
+R 70.00
+R 81,008.79-
+[ACCOUNT_NUMBER]
+Vitality Money Premium
+R 45.00
+R 81,053.79-
+[ACCOUNT_NUMBER]
+DISCBANK [ACCOUNT_NUMBER]/2
+R 5,106.48
+R 75,947.31-
+[ACCOUNT_NUMBER]
+Monthly facility fee
+R 50.00
+R 75,997.31-
+[ACCOUNT_NUMBER]
+Interest Charged at 21.25%
+R 1,383.10
+R 77,380.41-
+[ACCOUNT_NUMBER]
+Monthly Account fee
+R 70.00
+R 77,450.41-
+[ACCOUNT_NUMBER]
+Excess Interest charged at 21.25%
+R 14.72
+R 77,465.13-
+[ACCOUNT_NUMBER]
+Vitality Money Premium
+R 50.00
+R 77,515.13-
+[ACCOUNT_NUMBER]
+VITALITY [BANK_CODE]
+R 1,694.00
+R 79,209.13-
+[ACCOUNT_NUMBER]
+DISCBANK [ACCOUNT_NUMBER]/2
+R 3,875.76
+R 75,333.37-
+[ACCOUNT_NUMBER]
+Real-time payment MRS T [BANK_CODE]
+R 4,000.00
+R 71,333.37-
+[ACCOUNT_NUMBER]
+VITALITY [BANK_CODE]
+R 2,532.00
+R 73,865.37-
+1 Discovery Place, Sandhurst, Sandton, PO Box [BRANCH_CODE], Sandton, 2196 | 0800 07 96 97
+Discovery Bank Limited. Registration number 2015/[BRANCH_CODE]/06. An authorised financial services and registered credit provider.
+FSP number 48657. NCR registration number [BANK_CODE]. VAT registration number [ACCOUNT_NUMBER]. Limits, terms and conditions apply.
+[PERSONAL_INFO_REMOVED]
+
+From: 2025-05-09   To: 2025-08-09
+Account type: Vitality Savings Account
+
+[PERSONAL_INFO_REMOVED]
+Date
+Description
+Debit
+Credit
+Balance
+[ACCOUNT_NUMBER]
+Interest Earned at 5.00%
+R 0.34
+R 82.67
+[ACCOUNT_NUMBER]
+Interest Earned at 4.75%-5.00%
+R 0.35
+R 83.02
+[ACCOUNT_NUMBER]
+Interest Earned at 4.75%
+R 0.32
+R 83.34
+1 Discovery Place, Sandhurst, Sandton, PO Box [BRANCH_CODE], Sandton, 2196 | 0800 07 96 97
+Discovery Bank Limited. Registration number 2015/[BRANCH_CODE]/06. An authorised financial services and registered credit provider.
+FSP number 48657. NCR registration number [BANK_CODE]. VAT registration number [ACCOUNT_NUMBER]. Limits, terms and conditions apply.
+
+
+CSV output:

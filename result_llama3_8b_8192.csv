@@ -1,0 +1,7 @@
+Here is the extracted transaction data in the required CSV format:
+
+Date,Description,Amount (ZAR),Balance (ZAR)
+2025-08-01,Monthly facility fee,-50.00,-73190.00
+2025-08-01,Interest Charged at 21.50%,-1335.96,-74259.96
+2025-08-01,ENGEN MALVERN CONV CEN Durban,-200.00,-74840.96
+2025-08-01,Interest Earned,0.34,82.67

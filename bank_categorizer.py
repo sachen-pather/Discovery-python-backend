@@ -1,142 +1,155 @@
+# bank_categorizer.py
 import os
 import pandas as pd
-from openai import OpenAI
-from config import DATA_DIRECTORY, OUTPUT_DIRECTORY, OPENAI_API_KEY
+from typing import Optional
+from config import OUTPUT_DIRECTORY
+# If you put the LLM helper in a separate file (recommended):
+# from llm_categorizer import categorize_with_llm
+#
+# If you temporarily pasted the LLM code at the bottom of app.py,
+# you can switch to rule-based only for now by setting USE_LLM = False.
 
-# Initialize OpenAI client
-client = OpenAI(api_key=OPENAI_API_KEY)
-
-# Ensure output directory exists
-os.makedirs(OUTPUT_DIRECTORY, exist_ok=True)
+USE_LLM = True
+try:
+    from llm_categorizer import categorize_with_llm
+except Exception:
+    USE_LLM = False
 
 CATEGORIES = [
+    "Income",
+    "Debt Payments",
     "Rent/Mortgage",
     "Subscriptions",
     "Dining Out",
     "Transport",
     "Groceries",
     "Shopping",
+    "Administrative",
     "Other",
-    "Administrative"
 ]
 
-def find_description_column(df):
-    """Find the description column with different possible names."""
-    possible_names = [
-        'Description', 'description', 'DETAILS', 'Transaction Description',
-        'Narration', 'Reference', 'Memo'
+def _find_description_column(df: pd.DataFrame) -> Optional[str]:
+    possible = [
+        "Description", "description", "DETAILS", "Transaction Description",
+        "Narration", "Reference", "Memo"
     ]
     for col in df.columns:
-        if col in possible_names or any(name.lower() in col.lower() for name in possible_names):
+        if col in possible or any(p.lower() in str(col).lower() for p in possible):
             return col
     return None
 
-def find_amount_column(df):
-    """Find the amount column with different possible names."""
-    possible_names = [
-        'Amount', 'amount', 'AMOUNT', 'Amount (ZAR)', 'Debit', 'Credit',
-        'Transaction Amount', 'Value'
+def _find_amount_column(df: pd.DataFrame) -> Optional[str]:
+    possible = [
+        "Amount", "amount", "AMOUNT", "Amount (ZAR)", "Debit", "Credit",
+        "Transaction Amount", "Value"
     ]
     for col in df.columns:
-        if col in possible_names or any(name.lower() in col.lower() for name in possible_names):
+        if col in possible or any(p.lower() in str(col).lower() for p in possible):
             return col
     return None
 
-def classify_transaction(description, amount=None):
-    """Classify a bank transaction description into predefined categories."""
-    if pd.isna(description) or str(description).strip() == "":
-        return "Other"
-    
-    desc_lower = str(description).lower()
-    
-    # Administrative/Banking fees
-    if any(word in desc_lower for word in ['opening balance', 'account maintenance', 'atm fee', 'bank fee']):
-        return "Administrative"
-    
-    # Income patterns
-    if any(word in desc_lower for word in ['salary', 'wage', 'overtime', 'pay']):
-        return "Other"  # Will be classified as income later
-    
-    # Rent/Mortgage patterns
-    if any(word in desc_lower for word in ['rent', 'mortgage', 'room share', 'accommodation']):
-        return "Rent/Mortgage"
-    
-    # Groceries patterns
-    if any(word in desc_lower for word in ['shoprite', 'pick n pay', 'checkers', 'spar', 'woolworths', 'groceries', 'food store']):
-        return "Groceries"
-    
-    # Dining Out patterns  
-    if any(word in desc_lower for word in ['kfc', 'mcdonald', 'restaurant', 'takeaway', 'food', 'pizza', 'burger', 'nando']):
-        return "Dining Out"
-    
-    # Transport patterns
-    if any(word in desc_lower for word in ['taxi', 'uber', 'bolt', 'transport', 'fuel', 'petrol', 'bus fare']):
-        return "Transport"
-    
-    # Subscriptions patterns
-    if any(word in desc_lower for word in ['insurance', 'subscription', 'netflix', 'dstv', 'vodacom', 'mtn', 'airtime', 'data', 'electricity', 'prepaid electricity', 'water', 'municipal']):
-        return "Subscriptions"
-    
-    # Shopping patterns
-    if any(word in desc_lower for word in ['pep stores', 'clothing', 'edgars', 'truworths', 'shopping', 'clothes', 'fashion']):
-        return "Shopping"
-    
-    # ATM withdrawals
-    if 'atm withdrawal' in desc_lower:
-        return "Other"
-    
-    # Return "Other" instead of calling AI
-    return "Other"
+def _find_date_column(df: pd.DataFrame) -> Optional[str]:
+    for c in df.columns:
+        if str(c).strip().lower() in {"date", "transaction date", "posting date"}:
+            return c
+    return None
 
-def process_file(filepath):
-    """Process a CSV file and add category classifications."""
+# -------- Simple rule-based fallback (used if USE_LLM is False) --------
+def _rule_classify(df: pd.DataFrame, desc_col: str, amount_col: Optional[str]) -> pd.DataFrame:
+    import numpy as np
+    out = df.copy()
+    out["Category"] = None
+    out["IsDebtPayment"] = False
+    out["DebtKind"] = None
+    out["DebtName"] = None
+
+    def classify(desc, amt):
+        text = str(desc or "").lower()
+        if any(w in text for w in ["salary", "wage", "overtime", "pay", "payout", "deposit"]) or (
+            amount_col and pd.notna(amt) and float(amt) > 0
+        ):
+            return "Income"
+        if any(w in text for w in ["opening balance", "account maintenance", "atm fee", "bank fee"]):
+            return "Administrative"
+        debt_trigs = ["monthly payment", "repayment", "installment", "instalment", "debit order", "debit-order", "debitorder"]
+        if any(t in text for t in debt_trigs) or "(" in text and ")" in text:
+            # crude debt flag, finer details not needed for fallback
+            return "Debt Payments"
+        if any(w in text for w in ["rent", "room share", "accommodation"]) or "mortgage" in text:
+            return "Rent/Mortgage"
+        if any(w in text for w in ["shoprite", "pick n pay", "checkers", "spar", "woolworths", "groceries", "food store"]):
+            return "Groceries"
+        if any(w in text for w in ["kfc", "mcdonald", "restaurant", "takeaway", "pizza", "burger", "nando"]):
+            return "Dining Out"
+        if any(w in text for w in ["taxi", "uber", "bolt", "transport", "fuel", "petrol", "bus fare"]):
+            return "Transport"
+        if any(w in text for w in ["insurance", "subscription", "netflix", "dstv", "vodacom", "mtn", "airtime", "data", "electricity", "prepaid electricity", "water", "municipal"]):
+            return "Subscriptions"
+        if any(w in text for w in ["pep stores", "clothing", "edgars", "truworths", "shopping", "clothes", "fashion"]):
+            return "Shopping"
+        return "Other"
+
+    if amount_col and amount_col in out.columns:
+        out[amount_col] = pd.to_numeric(out[amount_col], errors="coerce")
+
+    for i, row in out.iterrows():
+        cat = classify(row[desc_col], row[amount_col] if amount_col else None)
+        out.at[i, "Category"] = cat
+        if cat == "Debt Payments":
+            out.at[i, "IsDebtPayment"] = True
+            out.at[i, "DebtName"] = row[desc_col]
+    return out
+
+# -------- PUBLIC API used by app.py --------
+def process_file(filepath: str) -> bool:
+    """
+    Read CSV at `filepath`, categorize transactions, write categorized CSV to
+    OUTPUT_DIRECTORY/categorized_<basename>, and return True/False.
+    """
     try:
-        # Read CSV file
         df = pd.read_csv(filepath)
-        
-        print(f"📄 Processing file: {os.path.basename(filepath)}")
-        print(f"📊 Columns found: {list(df.columns)}")
-        
-        # Find description and amount columns
-        desc_col = find_description_column(df)
-        amount_col = find_amount_column(df)
-        
+        desc_col = _find_description_column(df)
         if not desc_col:
-            print(f"❌ No description column found in {filepath}")
+            print(f"❌ No description column in {filepath}")
             return False
-        
-        print(f"✅ Using '{desc_col}' as description column")
-        if amount_col:
-            print(f"✅ Using '{amount_col}' as amount column")
-        else:
-            print("ℹ️  No amount column found (proceeding without amounts)")
-        
-        # Initialize Category column
-        df["Category"] = None
-        
-        # Classify each transaction
-        for idx, row in df.iterrows():
-            description = row.get(desc_col, '')
-            amount = row.get(amount_col, None) if amount_col else None
-            category = classify_transaction(description, amount)
-            df.at[idx, "Category"] = category
-        
-        # Save categorized file
-        output_filename = f"categorized_{os.path.basename(filepath)}"
-        output_path = os.path.join(OUTPUT_DIRECTORY, output_filename)
-        df.to_csv(output_path, index=False)
-        
-        print(f"✅ Saved categorized file: {output_filename}")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Error processing {filepath}: {e}")
-        return False
+        amount_col = _find_amount_column(df)
+        date_col = _find_date_column(df)
 
-if __name__ == "__main__":
-    # Example usage for testing
-    sample_file = os.path.join(DATA_DIRECTORY, "sample1_min_wage_earner.csv")
-    if os.path.exists(sample_file):
-        process_file(sample_file)
-    else:
-        print(f"Sample file not found: {sample_file}")
+        if USE_LLM:
+            print("🤖 Using LLM categorizer for transaction classification")
+            from llm_categorizer import categorize_with_llm  # local import to avoid hard dep if missing
+            categorized = categorize_with_llm(
+                df,
+                desc_col=desc_col,
+                amount_col=amount_col,
+                date_col=date_col,
+                provider="openai",  # "openai" | "groq" | "auto"
+                batch_size=25,
+            )
+        else:
+            print("🧠 Using rule-based fallback categorizer")
+            categorized = _rule_classify(df, desc_col, amount_col)
+
+        # Persist categorized CSV for the rest of the pipeline
+        out_name = f"categorized_{os.path.basename(filepath)}"
+        out_path = os.path.join(OUTPUT_DIRECTORY, out_name)
+        os.makedirs(OUTPUT_DIRECTORY, exist_ok=True)
+        categorized.to_csv(out_path, index=False)
+        print(f"✅ Saved categorized file: {out_name}")
+
+        # Optional: export a debts-only view the optimizer can use
+        debts = categorized[categorized.get("IsDebtPayment") == True]
+        if not debts.empty:
+            debts_out = os.path.join(OUTPUT_DIRECTORY, "debts_from_statement.csv")
+            # Minimal useful export
+            cols = []
+            for c in ["Date", desc_col, amount_col, "DebtKind", "DebtName", "Category"]:
+                if c and c in categorized.columns and c not in cols:
+                    cols.append(c)
+            debts[cols].to_csv(debts_out, index=False)
+            print(f"🧮 Extracted debts file: {os.path.basename(debts_out)}")
+
+        return True
+    except Exception as e:
+        print(f"❌ Error in process_file: {e}")
+        return False

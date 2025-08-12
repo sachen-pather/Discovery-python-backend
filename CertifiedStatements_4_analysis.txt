@@ -1,0 +1,14 @@
+PRIVACY FILTERING ANALYSIS
+==================================================
+
+Original text length: 3,711 characters
+Filtered text length: 4,065 characters
+Data removed: -354 characters
+
+Redactions made:
+  - Account numbers: 46
+  - Personal info lines: 6
+  - Bank codes: 14
+  - Branch codes: 6
+
+Total redactions: 72

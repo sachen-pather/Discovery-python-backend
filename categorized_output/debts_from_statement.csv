@@ -1,0 +1,4 @@
+Date,Description,Amount (ZAR),DebtKind,DebtName,Category
+2025-07-31,Monthly Payment – Mortgage (mortgage),-9000.0,mortgage,Monthly Payment – Mortgage,Debt Payments
+2025-07-31,Monthly Payment – Credit Card (credit_card),-750.0,credit_card,Monthly Payment – Credit Card,Debt Payments
+2025-07-31,Monthly Payment – Personal Loan (personal_loan),-1200.0,personal_loan,Monthly Payment – Personal Loan,Debt Payments
