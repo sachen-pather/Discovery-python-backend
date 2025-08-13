@@ -274,6 +274,119 @@ def upload_pdf():
         if 'csv_path' in locals() and os.path.exists(csv_path):
             os.remove(csv_path)
 
+@app.route("/upload-debt-csv", methods=["POST", "OPTIONS"])
+def upload_debt_csv():
+    """Handle debt CSV file uploads and perform debt analysis."""
+    # Handle preflight OPTIONS request
+    if request.method == "OPTIONS":
+        return jsonify({"status": "ok"}), 200
+        
+    if "file" not in request.files:
+        return jsonify({"error": "No debt file uploaded"}), 400
+
+    file = request.files["file"]
+    if file.filename == "" or not file.filename.endswith(".csv"):
+        return jsonify({"error": "Invalid or no debt CSV file"}), 400
+
+    # Get available monthly amount for debt payments
+    available_monthly = request.form.get('available_monthly', 0)
+    try:
+        available_monthly = float(available_monthly)
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid available_monthly amount"}), 400
+
+    # Save uploaded debt CSV file
+    debt_file_path = os.path.join(UPLOAD_DIR, f"debt_{file.filename}")
+    file.save(debt_file_path)
+
+    try:
+        # Validate debt CSV format
+        import pandas as pd
+        debt_df = pd.read_csv(debt_file_path)
+        
+        # Check required columns
+        required_columns = ['name', 'balance', 'apr', 'min_payment', 'kind']
+        missing_columns = [col for col in required_columns if col not in debt_df.columns]
+        
+        if missing_columns:
+            return jsonify({
+                "error": f"Missing required columns: {', '.join(missing_columns)}",
+                "required_columns": required_columns,
+                "found_columns": list(debt_df.columns)
+            }), 400
+        
+        # Validate data types and values
+        validation_errors = []
+        
+        for index, row in debt_df.iterrows():
+            try:
+                balance = float(row['balance'])
+                apr = float(row['apr'])
+                min_payment = float(row['min_payment'])
+                
+                if balance < 0:
+                    validation_errors.append(f"Row {index + 1}: Balance cannot be negative")
+                if apr < 0 or apr > 1:
+                    validation_errors.append(f"Row {index + 1}: APR should be between 0 and 1 (e.g., 0.22 for 22%)")
+                if min_payment < 0:
+                    validation_errors.append(f"Row {index + 1}: Minimum payment cannot be negative")
+                    
+            except ValueError as e:
+                validation_errors.append(f"Row {index + 1}: Invalid numeric value - {str(e)}")
+        
+        if validation_errors:
+            return jsonify({
+                "error": "Data validation failed",
+                "validation_errors": validation_errors[:10],  # Limit to first 10 errors
+                "example_format": {
+                    "name": "Credit Card",
+                    "balance": "8500.00",
+                    "apr": "0.22",
+                    "min_payment": "200.00",
+                    "kind": "credit_card"
+                }
+            }), 400
+        
+        print(f"✅ Debt CSV validated successfully: {len(debt_df)} debts found")
+        
+        # Perform debt analysis using the uploaded file
+        if not ENHANCED_DEBT_OPTIMIZER_AVAILABLE:
+            return jsonify({"error": "Debt optimizer not available"}), 503
+        
+        print(f"🔄 Starting debt analysis with ${available_monthly} available monthly")
+        
+        # Call debt optimization with the uploaded file path
+        if ENHANCED_DEBT_OPTIMIZER_AVAILABLE:
+            result = get_enhanced_debt_optimization(available_monthly, debt_file_path)
+        else:
+            result = get_debt_optimization(available_monthly, debt_file_path)
+        
+        # Add debt summary to result
+        debt_summary = {
+            "total_debts": len(debt_df),
+            "total_balance": float(debt_df['balance'].sum()),
+            "total_min_payments": float(debt_df['min_payment'].sum()),
+            "average_apr": float(debt_df['apr'].mean()),
+            "debt_types": debt_df['kind'].value_counts().to_dict()
+        }
+        
+        result["debt_summary"] = debt_summary
+        result["debts_uploaded"] = debt_df.to_dict('records')
+        
+        print("✅ Debt analysis completed successfully")
+        
+        return jsonify(convert_to_json_serializable(result)), 200
+        
+    except Exception as e:
+        print(f"❌ Debt analysis error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Debt analysis failed: {str(e)}"}), 500
+    finally:
+        # Clean up uploaded file
+        if os.path.exists(debt_file_path):
+            os.remove(debt_file_path)
+
 @app.route("/debt-analysis", methods=["POST", "OPTIONS"])
 def debt_analysis():
     """Analyze debt payoff strategies with enhanced optimization."""
@@ -287,6 +400,25 @@ def debt_analysis():
         data = request.get_json()
         available_monthly = data.get('available_monthly', 0)
         debts_csv_path = data.get('debts_csv_path')  # Optional custom path
+        
+        # Check if default debt file exists if no custom path provided
+        if not debts_csv_path:
+            default_debt_file = os.path.join(DATA_DIRECTORY, "debts.csv")
+            if not os.path.exists(default_debt_file):
+                return jsonify({
+                    "error": "No debt file found. Please upload a debt CSV file using /upload-debt-csv endpoint",
+                    "suggestion": "Use POST /upload-debt-csv with your debt information",
+                    "required_format": {
+                        "columns": ["name", "balance", "apr", "min_payment", "kind"],
+                        "example": {
+                            "name": "Credit Card",
+                            "balance": "8500.00", 
+                            "apr": "0.22",
+                            "min_payment": "200.00",
+                            "kind": "credit_card"
+                        }
+                    }
+                }), 400
         
         # Get enhanced debt optimization analysis
         if ENHANCED_DEBT_OPTIMIZER_AVAILABLE:
@@ -399,6 +531,7 @@ def health_check():
         "features": {
             "csv_upload": True,
             "pdf_upload": True,
+            "debt_csv_upload": True,  # New feature
             "ai_extraction": bool(OPENAI_API_KEY),
             "debt_optimizer": ENHANCED_DEBT_OPTIMIZER_AVAILABLE,
             "enhanced_debt_optimizer": ENHANCED_DEBT_OPTIMIZER_AVAILABLE,
@@ -406,6 +539,12 @@ def health_check():
             "investment_analyzer": INVESTMENT_ANALYZER_AVAILABLE,
             "protected_categories": ENHANCED_BUDGET_ANALYZER_AVAILABLE,
             "weighted_optimization": ENHANCED_BUDGET_ANALYZER_AVAILABLE
+        },
+        "endpoints": {
+            "budget_analysis": ["/upload-csv", "/upload-pdf"],
+            "debt_analysis": ["/upload-debt-csv", "/debt-analysis"],
+            "investment_analysis": ["/investment-analysis"],
+            "comprehensive": ["/comprehensive-analysis"]
         }
     }), 200
 
@@ -416,9 +555,10 @@ def supported_formats():
         return jsonify({"status": "ok"}), 200
         
     format_info = {
-        "supported_formats": ["CSV", "PDF"],
+        "supported_formats": ["CSV", "PDF", "Debt CSV"],
         "csv_format": {
             "description": "Standard bank statement CSV",
+            "endpoint": "/upload-csv",
             "required_columns": ["Date", "Description", "Amount (ZAR)", "Balance (ZAR)"],
             "optional_columns": ["ReduceAllowed"],
             "example": {
@@ -431,11 +571,14 @@ def supported_formats():
         },
         "pdf_format": {
             "description": "Bank statement PDF (text-based, not scanned)",
+            "endpoint": "/upload-pdf",
             "note": "PDF will be converted to CSV format automatically"
         },
         "debt_csv_format": {
             "description": "Debt information for optimization analysis",
+            "endpoint": "/upload-debt-csv",
             "required_columns": ["name", "balance", "apr", "min_payment", "kind"],
+            "required_params": ["available_monthly"],
             "example": {
                 "name": "Credit Card",
                 "balance": "8500.00",
@@ -443,7 +586,12 @@ def supported_formats():
                 "min_payment": "200.00",
                 "kind": "credit_card"
             },
-            "note": "Place as 'debts.csv' in the same directory as the application"
+            "notes": [
+                "APR should be decimal format (0.22 for 22%)",
+                "Balance and min_payment should be positive numbers",
+                "kind can be: credit_card, personal_loan, overdraft, etc.",
+                "available_monthly parameter needed for optimization"
+            ]
         }
     }
     
@@ -478,8 +626,8 @@ def get_features():
         "debt_optimization": {
             "available": ENHANCED_DEBT_OPTIMIZER_AVAILABLE,
             "description": "Optimize debt payoff using avalanche or snowball strategies",
-            "endpoints": ["/debt-analysis"],
-            "requirements": ["debts.csv file with debt information"],
+            "endpoints": ["/upload-debt-csv", "/debt-analysis"],
+            "requirements": ["debt CSV file with debt information"],
             "enhanced": ENHANCED_DEBT_OPTIMIZER_AVAILABLE
         },
         "investment_analysis": {
