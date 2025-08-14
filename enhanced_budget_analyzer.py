@@ -1,6 +1,6 @@
 """
-Enhanced budget analyzer with protected categories system
-Integrates your friend's improvements with your existing API structure
+Enhanced budget analyzer with protected categories system and debt/investment split recommendations
+UPDATED VERSION - Integrates your friend's improvements with debt/investment split support
 """
 import pandas as pd
 import glob
@@ -407,6 +407,9 @@ def calculate_enhanced_budget_analysis(df: pd.DataFrame, amount_col: str,
     else:
         protected_categories_present = set()
 
+    # Add transactions to the return data
+    transactions = df_clean.to_dict('records')
+
     return {
         'total_income': total_income,
         'total_expenses': total_expenses,
@@ -414,7 +417,8 @@ def calculate_enhanced_budget_analysis(df: pd.DataFrame, amount_col: str,
         'category_breakdown': category_breakdown,
         'reducible_category_breakdown': reducible_category_breakdown,
         'protected_categories_present': protected_categories_present,
-        'expense_data': expense_data
+        'expense_data': expense_data,
+        'transactions': transactions  # NEW: Include transactions for debt payment detection
     }
 
 def generate_enhanced_cost_cutting_suggestions(category_breakdown: Dict,
@@ -548,10 +552,52 @@ def calculate_savings_annuity(monthly_savings: float, years_list: List[int] = No
     
     return results
 
+def extract_debt_payments_from_transactions(transactions: List) -> List:
+    """Extract debt payment info from transaction list for debt-to-income ratio calculation."""
+    debt_payments = []
+    for transaction in transactions:
+        if transaction.get('IsDebtPayment') and transaction.get('DebtName'):
+            debt_payments.append({
+                'name': transaction.get('DebtName'),
+                'amount': abs(transaction.get('Amount (ZAR)', 0)),
+                'type': transaction.get('DebtKind', 'unknown')
+            })
+    return debt_payments
+
+def calculate_recommended_split(debt_to_income_ratio: float) -> Dict:
+    """
+    Calculate recommended debt/investment split based on debt burden.
+    NEW FUNCTION for debt/investment allocation recommendations.
+    """
+    if debt_to_income_ratio > 0.4:  # High debt burden (>40% of income)
+        return {
+            "debt": 0.8, 
+            "investment": 0.2, 
+            "rationale": "High debt burden detected - prioritize aggressive debt elimination"
+        }
+    elif debt_to_income_ratio > 0.28:  # Moderate debt burden (28-40% of income)
+        return {
+            "debt": 0.6, 
+            "investment": 0.4, 
+            "rationale": "Moderate debt levels - balanced approach recommended"
+        }
+    elif debt_to_income_ratio > 0.15:  # Low debt burden (15-28% of income)
+        return {
+            "debt": 0.4, 
+            "investment": 0.6, 
+            "rationale": "Low debt burden - favor long-term investment growth"
+        }
+    else:  # Very low/no debt burden (<15% of income)
+        return {
+            "debt": 0.2, 
+            "investment": 0.8, 
+            "rationale": "Minimal debt burden - focus on wealth building through investment"
+        }
+
 def generate_enhanced_budget_report(filepath: str) -> Dict:
     """
     Generate enhanced budget report compatible with your existing Flask API.
-    Integrates protected categories and weighted optimization.
+    UPDATED VERSION - Integrates protected categories, weighted optimization, and debt/investment split recommendations.
     """
     try:
         # Read the categorized CSV file
@@ -584,6 +630,15 @@ def generate_enhanced_budget_report(filepath: str) -> Dict:
             analysis['total_expenses']
         )
         
+        # NEW: Calculate debt-to-income ratio for split recommendations
+        debt_payments = extract_debt_payments_from_transactions(analysis.get('transactions', []))
+        total_debt_payments = sum(payment['amount'] for payment in debt_payments)
+        debt_to_income_ratio = total_debt_payments / analysis['total_income'] if analysis['total_income'] > 0 else 0
+        
+        # NEW: Add split recommendation logic
+        recommended_split = calculate_recommended_split(debt_to_income_ratio)
+        optimized_available_income = analysis['available_income'] + total_potential_savings
+        
         return {
             'analysis': analysis,
             'suggestions': enhanced_suggestions,
@@ -591,9 +646,21 @@ def generate_enhanced_budget_report(filepath: str) -> Dict:
             'action_plan': action_plan,
             'enhanced_mode': True,
             'annuity_projection': calculate_savings_annuity(analysis['available_income']),
-            'optimized_available_income': analysis['available_income'] + total_potential_savings
+            'optimized_available_income': optimized_available_income,
+            
+            # NEW FIELDS for debt/investment split:
+            'debt_to_income_ratio': debt_to_income_ratio,
+            'total_debt_payments': total_debt_payments,
+            'debt_payments_detected': debt_payments,
+            'recommended_debt_ratio': recommended_split['debt'],
+            'recommended_investment_ratio': recommended_split['investment'],
+            'split_rationale': recommended_split['rationale'],
+            'recommended_debt_budget': optimized_available_income * recommended_split['debt'],
+            'recommended_investment_budget': optimized_available_income * recommended_split['investment'],
         }
         
     except Exception as e:
         print(f"❌ Error generating enhanced report for {filepath}: {e}")
+        import traceback
+        traceback.print_exc()
         return None

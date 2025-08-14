@@ -1,4 +1,4 @@
-# app.py - Enhanced with your friend's statistical improvements
+# app.py - Enhanced with debt/investment split functionality
 import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -14,8 +14,6 @@ from openai import OpenAI
 import os
 import pandas as pd
 import numpy as np
-
-
 
 # Import enhanced modules
 try:
@@ -60,6 +58,22 @@ os.makedirs(OUTPUT_DIRECTORY, exist_ok=True)
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
+# NEW: Store the latest categorized file path for debt analysis
+LATEST_CATEGORIZED_FILE = None
+
+# NEW: Global variable to store current debt analysis
+CURRENT_DEBT_ANALYSIS = None
+
+# NEW: Global variable to store current debt/investment split
+CURRENT_SPLIT = None
+
+def clear_debt_analysis():
+    """Clear any existing debt analysis and split when a new financial statement is uploaded."""
+    global CURRENT_DEBT_ANALYSIS, CURRENT_SPLIT
+    CURRENT_DEBT_ANALYSIS = None
+    CURRENT_SPLIT = None
+    print("🧹 Cleared previous debt analysis and split")
+
 def convert_to_json_serializable(obj):
     """Convert numpy/pandas types to JSON serializable types."""
     if isinstance(obj, dict):
@@ -90,6 +104,8 @@ def convert_to_json_serializable(obj):
 
 def process_financial_data(csv_file_path):
     """Process CSV file and return financial analysis with enhanced features."""
+    global LATEST_CATEGORIZED_FILE
+    
     try:
         print(f"🔄 Starting to process: {csv_file_path}")
         print(f"📁 File exists: {os.path.exists(csv_file_path)}")
@@ -108,14 +124,18 @@ def process_financial_data(csv_file_path):
             print("❌ process_file returned False")
             return None
         
-        # Try enhanced budget report first
+        # Store the categorized file path for debt analysis
         categorized_file = os.path.join(OUTPUT_DIRECTORY, f"categorized_{os.path.basename(csv_file_path)}")
+        if os.path.exists(categorized_file):
+            LATEST_CATEGORIZED_FILE = categorized_file
+            print(f"💾 Stored latest categorized file: {LATEST_CATEGORIZED_FILE}")
+        
         print(f"📁 Looking for categorized file: {categorized_file}")
         print(f"📁 Categorized file exists: {os.path.exists(categorized_file)}")
         
-        
         categorized_df = pd.read_csv(categorized_file)
         categorized_records = categorized_df.to_dict(orient="records")
+        
         if ENHANCED_BUDGET_ANALYZER_AVAILABLE:
             print("🔄 Trying enhanced budget analysis...")
             try:
@@ -136,7 +156,18 @@ def process_financial_data(csv_file_path):
                         "enhanced_mode": True,
                         "action_plan": enhanced_report.get('action_plan'),
                         "protected_categories": list(enhanced_report['analysis'].get('protected_categories_present', set())),
-                        "transactions": categorized_records
+                        "transactions": categorized_records,
+                        "categorized_file_path": categorized_file,
+                        
+                        # NEW: Debt/investment split recommendations
+                        "debt_to_income_ratio": enhanced_report.get('debt_to_income_ratio', 0),
+                        "total_debt_payments": enhanced_report.get('total_debt_payments', 0),
+                        "debt_payments_detected": enhanced_report.get('debt_payments_detected', []),
+                        "recommended_debt_ratio": enhanced_report.get('recommended_debt_ratio', 0.5),
+                        "recommended_investment_ratio": enhanced_report.get('recommended_investment_ratio', 0.5),
+                        "split_rationale": enhanced_report.get('split_rationale', ''),
+                        "recommended_debt_budget": enhanced_report.get('recommended_debt_budget', 0),
+                        "recommended_investment_budget": enhanced_report.get('recommended_investment_budget', 0),
                     }
                     print("✅ Successfully created enhanced result")
                     return convert_to_json_serializable(result)
@@ -174,7 +205,17 @@ def process_financial_data(csv_file_path):
                 "annuity_projection": calculate_savings_annuity(available_income),
                 "total_potential_savings": float(total_potential_savings),
                 "optimized_available_income": float(available_income + total_potential_savings),
-                "enhanced_mode": False
+                "enhanced_mode": False,
+                "transactions": categorized_records,
+                "categorized_file_path": categorized_file,
+                
+                # DEFAULT: Basic split recommendations when enhanced not available
+                "debt_to_income_ratio": 0,
+                "recommended_debt_ratio": 0.5,
+                "recommended_investment_ratio": 0.5,
+                "split_rationale": "Basic 50/50 split - upload debt information for personalized recommendations",
+                "recommended_debt_budget": (available_income + total_potential_savings) * 0.5,
+                "recommended_investment_budget": (available_income + total_potential_savings) * 0.5,
             }
             
             print("✅ Successfully created original result")
@@ -191,7 +232,7 @@ def process_financial_data(csv_file_path):
         import traceback
         traceback.print_exc()
         return None
-    
+
 @app.route("/upload-csv", methods=["POST", "OPTIONS"])
 def upload_csv():
     """Handle CSV file uploads with enhanced processing."""
@@ -205,6 +246,9 @@ def upload_csv():
     file = request.files["file"]
     if file.filename == "" or not file.filename.endswith(".csv"):
         return jsonify({"error": "Invalid or no CSV file"}), 400
+
+    # IMPORTANT: Clear any existing debt analysis when uploading new statement
+    clear_debt_analysis()
 
     # Save uploaded CSV file
     file_path = os.path.join(UPLOAD_DIR, file.filename)
@@ -240,6 +284,9 @@ def upload_pdf():
     if file.filename == "" or not file.filename.endswith(".pdf"):
         return jsonify({"error": "Invalid or no PDF file"}), 400
 
+    # IMPORTANT: Clear any existing debt analysis when uploading new statement
+    clear_debt_analysis()
+
     # Save uploaded PDF file
     pdf_path = os.path.join(UPLOAD_DIR, file.filename)
     file.save(pdf_path)
@@ -274,9 +321,86 @@ def upload_pdf():
         if 'csv_path' in locals() and os.path.exists(csv_path):
             os.remove(csv_path)
 
+@app.route("/apply-debt-investment-split", methods=["POST", "OPTIONS"])
+def apply_debt_investment_split():
+    """Apply user's debt/investment allocation split - NEW ENDPOINT"""
+    global LATEST_CATEGORIZED_FILE, CURRENT_SPLIT
+    
+    if request.method == "OPTIONS":
+        return jsonify({"status": "ok"}), 200
+        
+    data = request.get_json()
+    
+    # Extract parameters
+    total_available = data.get('total_available_income', 0)
+    debt_ratio = data.get('debt_ratio', 0.5)  # 0.0 to 1.0
+    investment_ratio = data.get('investment_ratio', 0.5)  # 0.0 to 1.0
+    
+    # Validate ratios sum to 1.0
+    if abs(debt_ratio + investment_ratio - 1.0) > 0.01:
+        return jsonify({"error": "Debt and investment ratios must sum to 1.0"}), 400
+    
+    result = {}
+    
+    # Calculate debt optimization with allocated budget
+    if debt_ratio > 0 and ENHANCED_DEBT_OPTIMIZER_AVAILABLE:
+        try:
+            debt_result = get_enhanced_debt_optimization(
+                total_available_income=total_available,
+                debt_allocation_ratio=debt_ratio,
+                categorized_file_path=LATEST_CATEGORIZED_FILE
+            )
+            result['debt_analysis'] = debt_result
+        except Exception as e:
+            result['debt_analysis'] = {"error": str(e)}
+    
+    # Calculate investment projections with allocated budget  
+    if investment_ratio > 0 and INVESTMENT_ANALYZER_AVAILABLE:
+        try:
+            investment_result = get_investment_analysis(
+                total_available_income=total_available,
+                investment_allocation_ratio=investment_ratio
+            )
+            result['investment_analysis'] = investment_result
+        except Exception as e:
+            result['investment_analysis'] = {"error": str(e)}
+    
+    # Store the current split globally
+    CURRENT_SPLIT = {
+        "total_available": total_available,
+        "debt_ratio": debt_ratio,
+        "investment_ratio": investment_ratio,
+        "debt_budget": total_available * debt_ratio,
+        "investment_budget": total_available * investment_ratio
+    }
+    
+    result.update({
+        "split_applied": True,
+        "debt_budget": total_available * debt_ratio,
+        "investment_budget": total_available * investment_ratio,
+        "ratios": {"debt": debt_ratio, "investment": investment_ratio}
+    })
+    
+    return jsonify(convert_to_json_serializable(result))
+
+@app.route("/current-split", methods=["GET", "OPTIONS"])
+def get_current_split():
+    """Get the current debt/investment split if available - NEW ENDPOINT"""
+    global CURRENT_SPLIT
+    
+    if request.method == "OPTIONS":
+        return jsonify({"status": "ok"}), 200
+    
+    if CURRENT_SPLIT is None:
+        return jsonify({"error": "No split applied", "has_split": False}), 404
+    
+    return jsonify({"has_split": True, "split": CURRENT_SPLIT}), 200
+
 @app.route("/upload-debt-csv", methods=["POST", "OPTIONS"])
 def upload_debt_csv():
     """Handle debt CSV file uploads and perform debt analysis."""
+    global LATEST_CATEGORIZED_FILE, CURRENT_DEBT_ANALYSIS
+    
     # Handle preflight OPTIONS request
     if request.method == "OPTIONS":
         return jsonify({"status": "ok"}), 200
@@ -303,6 +427,28 @@ def upload_debt_csv():
         # Validate debt CSV format
         import pandas as pd
         debt_df = pd.read_csv(debt_file_path)
+        
+        # Check if file is empty or has no debts
+        if debt_df.empty or len(debt_df) == 0:
+            print("📋 Empty debt file uploaded - no debts found")
+            result = {
+                "debts_uploaded": [],
+                "debt_summary": {
+                    "total_debts": 0,
+                    "total_balance": 0,
+                    "total_min_payments": 0,
+                    "average_apr": 0,
+                    "debt_types": {}
+                },
+                "message": "No debts found in uploaded file",
+                "budget_used": available_monthly,
+                "categorized_file_used": LATEST_CATEGORIZED_FILE
+            }
+            
+            # Store empty result
+            CURRENT_DEBT_ANALYSIS = result
+            
+            return jsonify(convert_to_json_serializable(result)), 200
         
         # Check required columns
         required_columns = ['name', 'balance', 'apr', 'min_payment', 'kind']
@@ -349,17 +495,20 @@ def upload_debt_csv():
         
         print(f"✅ Debt CSV validated successfully: {len(debt_df)} debts found")
         
-        # Perform debt analysis using the uploaded file
+        # Perform debt analysis using the uploaded file - UPDATED to use new parameters
         if not ENHANCED_DEBT_OPTIMIZER_AVAILABLE:
             return jsonify({"error": "Debt optimizer not available"}), 503
         
-        print(f"🔄 Starting debt analysis with ${available_monthly} available monthly")
+        print(f"🔄 Starting debt analysis with R{available_monthly} additional monthly budget")
+        print(f"📁 Using categorized file: {LATEST_CATEGORIZED_FILE}")
         
-        # Call debt optimization with the uploaded file path
-        if ENHANCED_DEBT_OPTIMIZER_AVAILABLE:
-            result = get_enhanced_debt_optimization(available_monthly, debt_file_path)
-        else:
-            result = get_debt_optimization(available_monthly, debt_file_path)
+        # UPDATED: Use new function signature with allocation ratio of 1.0 (100% to debt)
+        result = get_enhanced_debt_optimization(
+            total_available_income=available_monthly,
+            debt_allocation_ratio=1.0,  # 100% allocation to debt
+            debts_csv_path=debt_file_path,
+            categorized_file_path=LATEST_CATEGORIZED_FILE
+        )
         
         # Add debt summary to result
         debt_summary = {
@@ -372,6 +521,9 @@ def upload_debt_csv():
         
         result["debt_summary"] = debt_summary
         result["debts_uploaded"] = debt_df.to_dict('records')
+        
+        # IMPORTANT: Store the debt analysis globally
+        CURRENT_DEBT_ANALYSIS = result
         
         print("✅ Debt analysis completed successfully")
         
@@ -389,7 +541,9 @@ def upload_debt_csv():
 
 @app.route("/debt-analysis", methods=["POST", "OPTIONS"])
 def debt_analysis():
-    """Analyze debt payoff strategies with enhanced optimization."""
+    """Analyze debt payoff strategies with enhanced optimization - UPDATED for new parameters."""
+    global LATEST_CATEGORIZED_FILE
+    
     if request.method == "OPTIONS":
         return jsonify({"status": "ok"}), 200
     
@@ -420,20 +574,35 @@ def debt_analysis():
                     }
                 }), 400
         
-        # Get enhanced debt optimization analysis
-        if ENHANCED_DEBT_OPTIMIZER_AVAILABLE:
-            result = get_enhanced_debt_optimization(available_monthly, debts_csv_path)
-        else:
-            result = get_debt_optimization(available_monthly, debts_csv_path)
+        # UPDATED: Use new function signature with allocation ratio of 1.0 (100% to debt)
+        result = get_enhanced_debt_optimization(
+            total_available_income=available_monthly,
+            debt_allocation_ratio=1.0,  # 100% allocation to debt
+            debts_csv_path=debts_csv_path,
+            categorized_file_path=LATEST_CATEGORIZED_FILE
+        )
         
         return jsonify(result), 200
         
     except Exception as e:
         return jsonify({"error": f"Debt analysis failed: {str(e)}"}), 500
 
+@app.route("/current-debt-analysis", methods=["GET", "OPTIONS"])
+def get_current_debt_analysis():
+    """Get the current debt analysis if available."""
+    global CURRENT_DEBT_ANALYSIS
+    
+    if request.method == "OPTIONS":
+        return jsonify({"status": "ok"}), 200
+    
+    if CURRENT_DEBT_ANALYSIS is None:
+        return jsonify({"error": "No debt analysis available", "has_analysis": False}), 404
+    
+    return jsonify({"has_analysis": True, "analysis": CURRENT_DEBT_ANALYSIS}), 200
+
 @app.route("/investment-analysis", methods=["POST", "OPTIONS"])
 def investment_analysis():
-    """Analyze investment projections."""
+    """Analyze investment projections - UPDATED for new parameters."""
     if request.method == "OPTIONS":
         return jsonify({"status": "ok"}), 200
     
@@ -444,8 +613,11 @@ def investment_analysis():
         data = request.get_json()
         available_monthly = data.get('available_monthly', 0)
         
-        # Get investment analysis
-        result = get_investment_analysis(available_monthly)
+        # UPDATED: Use new function signature with allocation ratio of 1.0 (100% to investment)
+        result = get_investment_analysis(
+            total_available_income=available_monthly,
+            investment_allocation_ratio=1.0  # 100% allocation to investment
+        )
         
         return jsonify(result), 200
         
@@ -454,7 +626,9 @@ def investment_analysis():
 
 @app.route("/comprehensive-analysis", methods=["POST", "OPTIONS"])
 def comprehensive_analysis():
-    """Get comprehensive financial analysis with enhanced features."""
+    """Get comprehensive financial analysis with enhanced features - UPDATED."""
+    global LATEST_CATEGORIZED_FILE
+    
     if request.method == "OPTIONS":
         return jsonify({"status": "ok"}), 200
     
@@ -479,10 +653,13 @@ def comprehensive_analysis():
         # Add debt analysis if available and there's money for debt payments
         if ENHANCED_DEBT_OPTIMIZER_AVAILABLE and optimized_available_income > 0:
             try:
-                if ENHANCED_DEBT_OPTIMIZER_AVAILABLE:
-                    debt_result = get_enhanced_debt_optimization(optimized_available_income, debts_csv_path)
-                else:
-                    debt_result = get_debt_optimization(optimized_available_income, debts_csv_path)
+                # UPDATED: Use new function signature
+                debt_result = get_enhanced_debt_optimization(
+                    total_available_income=optimized_available_income,
+                    debt_allocation_ratio=1.0,  # 100% allocation to debt for comprehensive analysis
+                    debts_csv_path=debts_csv_path,
+                    categorized_file_path=LATEST_CATEGORIZED_FILE
+                )
                 comprehensive_result["debt_analysis"] = debt_result
             except Exception as e:
                 comprehensive_result["debt_analysis"] = {"error": f"Debt analysis failed: {str(e)}"}
@@ -490,7 +667,11 @@ def comprehensive_analysis():
         # Add investment analysis if available
         if INVESTMENT_ANALYZER_AVAILABLE and optimized_available_income > 0:
             try:
-                investment_result = get_investment_analysis(optimized_available_income)
+                # UPDATED: Use new function signature
+                investment_result = get_investment_analysis(
+                    total_available_income=optimized_available_income,
+                    investment_allocation_ratio=1.0  # 100% allocation to investment for comprehensive analysis
+                )
                 comprehensive_result["investment_analysis"] = investment_result
             except Exception as e:
                 comprehensive_result["investment_analysis"] = {"error": f"Investment analysis failed: {str(e)}"}
@@ -531,244 +712,38 @@ def health_check():
         "features": {
             "csv_upload": True,
             "pdf_upload": True,
-            "debt_csv_upload": True,  # New feature
+            "debt_csv_upload": True,
             "ai_extraction": bool(OPENAI_API_KEY),
             "debt_optimizer": ENHANCED_DEBT_OPTIMIZER_AVAILABLE,
             "enhanced_debt_optimizer": ENHANCED_DEBT_OPTIMIZER_AVAILABLE,
             "enhanced_budget_analyzer": ENHANCED_BUDGET_ANALYZER_AVAILABLE,
             "investment_analyzer": INVESTMENT_ANALYZER_AVAILABLE,
             "protected_categories": ENHANCED_BUDGET_ANALYZER_AVAILABLE,
-            "weighted_optimization": ENHANCED_BUDGET_ANALYZER_AVAILABLE
+            "weighted_optimization": ENHANCED_BUDGET_ANALYZER_AVAILABLE,
+            "current_payment_detection": ENHANCED_DEBT_OPTIMIZER_AVAILABLE,
+            "debt_analysis_clearing": True,
+            "debt_investment_split": True,  # NEW FEATURE
         },
         "endpoints": {
             "budget_analysis": ["/upload-csv", "/upload-pdf"],
             "debt_analysis": ["/upload-debt-csv", "/debt-analysis"],
             "investment_analysis": ["/investment-analysis"],
-            "comprehensive": ["/comprehensive-analysis"]
-        }
+            "comprehensive": ["/comprehensive-analysis"],
+            "debt_status": ["/current-debt-analysis"],
+            "split_management": ["/apply-debt-investment-split", "/current-split"],  # NEW ENDPOINTS
+        },
+        "latest_categorized_file": LATEST_CATEGORIZED_FILE,
+        "current_debt_analysis": CURRENT_DEBT_ANALYSIS is not None,
+        "current_split": CURRENT_SPLIT is not None  # NEW DEBUG INFO
     }), 200
 
-@app.route("/supported-formats", methods=["GET", "OPTIONS"])
-def supported_formats():
-    """Return supported file formats with enhanced features."""
-    if request.method == "OPTIONS":
-        return jsonify({"status": "ok"}), 200
-        
-    format_info = {
-        "supported_formats": ["CSV", "PDF", "Debt CSV"],
-        "csv_format": {
-            "description": "Standard bank statement CSV",
-            "endpoint": "/upload-csv",
-            "required_columns": ["Date", "Description", "Amount (ZAR)", "Balance (ZAR)"],
-            "optional_columns": ["ReduceAllowed"],
-            "example": {
-                "Date": "2025-07-01",
-                "Description": "Salary – Acme Co",
-                "Amount (ZAR)": "5600.0",
-                "Balance (ZAR)": "5745.0",
-                "ReduceAllowed": "true"
-            }
-        },
-        "pdf_format": {
-            "description": "Bank statement PDF (text-based, not scanned)",
-            "endpoint": "/upload-pdf",
-            "note": "PDF will be converted to CSV format automatically"
-        },
-        "debt_csv_format": {
-            "description": "Debt information for optimization analysis",
-            "endpoint": "/upload-debt-csv",
-            "required_columns": ["name", "balance", "apr", "min_payment", "kind"],
-            "required_params": ["available_monthly"],
-            "example": {
-                "name": "Credit Card",
-                "balance": "8500.00",
-                "apr": "0.22",
-                "min_payment": "200.00",
-                "kind": "credit_card"
-            },
-            "notes": [
-                "APR should be decimal format (0.22 for 22%)",
-                "Balance and min_payment should be positive numbers",
-                "kind can be: credit_card, personal_loan, overdraft, etc.",
-                "available_monthly parameter needed for optimization"
-            ]
-        }
-    }
-    
-    if ENHANCED_BUDGET_ANALYZER_AVAILABLE:
-        format_info["enhanced_features"] = {
-            "protected_categories": {
-                "description": "Automatically detects and protects fixed obligations from optimization",
-                "protected_keywords": ["loan", "repayment", "mortgage", "credit card", "monthly payment"],
-                "manual_override": "Use ReduceAllowed column in CSV (true/false) to manually control"
-            },
-            "weighted_optimization": {
-                "description": "Uses South African income brackets and spending patterns for realistic suggestions",
-                "income_brackets": ["very_low", "low", "low_middle", "middle", "upper_middle"]
-            }
-        }
-    
-    return jsonify(format_info), 200
-
-@app.route("/features", methods=["GET", "OPTIONS"])
-def get_features():
-    """Return available features with enhanced capabilities."""
-    if request.method == "OPTIONS":
-        return jsonify({"status": "ok"}), 200
-    
-    features = {
-        "budget_analysis": {
-            "available": True,
-            "description": "Categorize expenses and analyze spending patterns",
-            "endpoints": ["/upload-csv", "/upload-pdf"],
-            "enhanced": ENHANCED_BUDGET_ANALYZER_AVAILABLE
-        },
-        "debt_optimization": {
-            "available": ENHANCED_DEBT_OPTIMIZER_AVAILABLE,
-            "description": "Optimize debt payoff using avalanche or snowball strategies",
-            "endpoints": ["/upload-debt-csv", "/debt-analysis"],
-            "requirements": ["debt CSV file with debt information"],
-            "enhanced": ENHANCED_DEBT_OPTIMIZER_AVAILABLE
-        },
-        "investment_analysis": {
-            "available": INVESTMENT_ANALYZER_AVAILABLE,
-            "description": "Project investment returns for conservative, moderate, and aggressive portfolios",
-            "endpoints": ["/investment-analysis"]
-        },
-        "comprehensive_analysis": {
-            "available": ENHANCED_DEBT_OPTIMIZER_AVAILABLE or INVESTMENT_ANALYZER_AVAILABLE,
-            "description": "Combined analysis of budget optimization, debt payoff, and investment projections",
-            "endpoints": ["/comprehensive-analysis"],
-            "enhanced": ENHANCED_BUDGET_ANALYZER_AVAILABLE and ENHANCED_DEBT_OPTIMIZER_AVAILABLE
-        }
-    }
-    
-    if ENHANCED_BUDGET_ANALYZER_AVAILABLE:
-        features["protected_categories"] = {
-            "available": True,
-            "description": "Automatically identifies and protects fixed obligations from budget optimization",
-            "features": [
-                "Keyword-based detection of debt payments",
-                "Category-based protection",
-                "Manual override via CSV column",
-                "Realistic optimization within constraints"
-            ]
-        }
-        
-        features["weighted_optimization"] = {
-            "available": True,
-            "description": "Uses South African economic context for realistic budget suggestions",
-            "features": [
-                "Income bracket analysis",
-                "Regional cost considerations",
-                "Priority-based action plans",
-                "Confidence levels for suggestions"
-            ]
-        }
-    
-    if ENHANCED_DEBT_OPTIMIZER_AVAILABLE:
-        features["enhanced_debt_analysis"] = {
-            "available": True,
-            "description": "Advanced debt optimization with budget report integration",
-            "features": [
-                "Automatic budget extraction from reports",
-                "Bank statement integration",
-                "Current payment detection",
-                "Interest compound modeling"
-            ]
-        }
-    
-    return jsonify(features), 200
-
-@app.route("/enhanced-features", methods=["GET", "OPTIONS"])
-def get_enhanced_features():
-    """New endpoint to showcase enhanced statistical features."""
-    if request.method == "OPTIONS":
-        return jsonify({"status": "ok"}), 200
-    
-    enhanced_features = {
-        "statistical_improvements": {
-            "weighted_analysis": {
-                "enabled": ENHANCED_BUDGET_ANALYZER_AVAILABLE,
-                "description": "Uses statistical modeling based on South African household spending patterns",
-                "benefits": [
-                    "More accurate savings estimates",
-                    "Income-bracket specific recommendations",
-                    "Realistic optimization constraints"
-                ]
-            },
-            "protected_category_detection": {
-                "enabled": ENHANCED_BUDGET_ANALYZER_AVAILABLE,
-                "description": "Automatically identifies fixed obligations that shouldn't be reduced",
-                "detection_methods": [
-                    "Keyword pattern matching",
-                    "Category classification",
-                    "Manual CSV overrides"
-                ]
-            },
-            "compound_interest_modeling": {
-                "enabled": ENHANCED_DEBT_OPTIMIZER_AVAILABLE,
-                "description": "Advanced debt payoff calculations with multiple compounding methods",
-                "options": ["nominal", "effective", "daily"]
-            },
-            "budget_report_integration": {
-                "enabled": ENHANCED_DEBT_OPTIMIZER_AVAILABLE,
-                "description": "Automatically extracts optimized savings from budget reports",
-                "features": [
-                    "Pattern recognition for budget amounts",
-                    "Multi-format support",
-                    "Fallback mechanisms"
-                ]
-            }
-        },
-        "algorithmic_enhancements": {
-            "priority_scoring": {
-                "enabled": ENHANCED_BUDGET_ANALYZER_AVAILABLE,
-                "description": "Ranks optimization suggestions by potential impact",
-                "scale": "1-5 priority levels"
-            },
-            "confidence_levels": {
-                "enabled": ENHANCED_BUDGET_ANALYZER_AVAILABLE,
-                "description": "Provides confidence estimates for savings projections",
-                "levels": ["Low", "Medium", "High"]
-            },
-            "action_plan_generation": {
-                "enabled": ENHANCED_BUDGET_ANALYZER_AVAILABLE,
-                "description": "Creates time-based implementation plans",
-                "categories": ["immediate_actions", "short_term_goals", "long_term_goals"]
-            }
-        },
-        "data_quality": {
-            "enhanced_categorization": {
-                "enabled": True,
-                "description": "Improved transaction categorization with AI fallback",
-                "features": [
-                    "Rule-based classification first",
-                    "AI-powered uncertainty resolution",
-                    "Caching for performance",
-                    "Batch processing optimization"
-                ]
-            },
-            "robust_parsing": {
-                "enabled": True,
-                "description": "Enhanced CSV and PDF processing",
-                "improvements": [
-                    "Flexible column detection",
-                    "Error recovery mechanisms",
-                    "Multiple format support"
-                ]
-            }
-        }
-    }
-    
-    return jsonify(enhanced_features), 200
-
 if __name__ == "__main__":
-    print("🚀 Starting Enhanced Financial Analyzer API")
-    print("=" * 50)
+    print("🚀 Starting Enhanced Financial Analyzer API with Debt/Investment Split Support")
+    print("=" * 70)
     print(f"✅ Enhanced Budget Analyzer: {'Available' if ENHANCED_BUDGET_ANALYZER_AVAILABLE else 'Not Available'}")
     print(f"✅ Enhanced Debt Optimizer: {'Available' if ENHANCED_DEBT_OPTIMIZER_AVAILABLE else 'Not Available'}")
     print(f"✅ Investment Analyzer: {'Available' if INVESTMENT_ANALYZER_AVAILABLE else 'Not Available'}")
-    print("=" * 50)
+    print(f"✅ Debt/Investment Split: Available")
+    print("=" * 70)
     
     app.run(host="0.0.0.0", port=5000, debug=True)

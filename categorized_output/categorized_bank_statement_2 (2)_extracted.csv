@@ -1,0 +1,19 @@
+Date,Description,Amount (ZAR),Balance (ZAR),Category,IsDebtPayment,DebtKind,DebtName
+2025-07-01,Account Maintenance Fee,-5.0,145.0,Administrative,False,,
+2025-07-01,Salary – Acme Co,22000.0,22145.0,Income,False,,
+2025-07-03,Shoprite Groceries,-3950.0,18195.0,Groceries,False,,
+2025-07-04,ATM Withdrawal,-500.0,17695.0,Other,False,,
+2025-07-04,ATM Fee,-2.0,17693.0,Administrative,False,,
+2025-07-05,Prepaid Electricity,-800.0,16893.0,Subscriptions,False,,
+2025-07-05,Vodacom Airtime,-200.0,16693.0,Subscriptions,False,,
+2025-07-10,KFC Takeaway,-200.0,16493.0,Dining Out,False,,
+2025-07-15,Funeral Insurance,-60.0,16433.0,Subscriptions,False,,
+2025-07-17,Pick n Pay Groceries,-1350.0,15083.0,Groceries,False,,
+2025-07-20,Pep Stores Clothing,-120.0,14963.0,Shopping,False,,
+2025-07-24,ATM Withdrawal,-300.0,14663.0,Other,False,,
+2025-07-24,ATM Fee,-2.0,14661.0,Administrative,False,,
+2025-07-25,Local Taxi Fare,-180.0,14481.0,Transport,False,,
+2025-07-26,Money Transfer – Family,-1500.0,12981.0,Other,False,,
+2025-07-31,Monthly Payment – Mortgage,-9000.0,3981.0,Debt Payments,True,mortgage,Monthly Payment – Mortgage
+2025-07-31,Monthly Payment – Credit Card,-750.0,3231.0,Debt Payments,True,credit_card,Monthly Payment – Credit Card
+2025-07-31,Monthly Payment – Personal Loan,-1200.0,2031.0,Debt Payments,True,personal_loan,Monthly Payment – Personal Loan

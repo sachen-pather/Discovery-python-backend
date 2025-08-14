@@ -1,0 +1,5 @@
+name,kind,balance,apr,min_payment
+Mortgage,mortgage,900000,0.06,9000
+Credit Card,credit_card,25000,0.10,750
+Personal Loan,personal_loan,60000,0.16,1200
+

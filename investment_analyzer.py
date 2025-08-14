@@ -1,6 +1,6 @@
 """
-investment_analyzer.py - Investment portfolio projections
-Calculates potential investment returns based on available monthly savings
+investment_analyzer.py - UPDATED VERSION with debt/investment split support
+Calculates potential investment returns based on allocated portion of available monthly savings
 """
 
 from dataclasses import dataclass
@@ -58,17 +58,18 @@ def calculate_future_value(monthly_contribution: float, annual_rate: float, year
     
     return future_value
 
-def calculate_investment_projections(monthly_savings: float, years_list: List[int] = None) -> Dict:
+def calculate_investment_projections(investment_budget: float, years_list: List[int] = None) -> Dict:
     """
     Calculate investment projections for all profiles across different time horizons
+    UPDATED: Now uses investment_budget parameter instead of monthly_savings
     """
     if years_list is None:
         years_list = [1, 5, 10, 15, 20, 25]
     
-    if monthly_savings <= 0:
+    if investment_budget <= 0:
         return {
-            "error": "Monthly savings amount must be greater than 0",
-            "monthly_savings": monthly_savings
+            "error": "Investment budget must be greater than 0",
+            "investment_budget": investment_budget
         }
     
     projections = {}
@@ -78,16 +79,16 @@ def calculate_investment_projections(monthly_savings: float, years_list: List[in
         
         for years in years_list:
             # Calculate with both average and effective returns
-            avg_future_value = calculate_future_value(monthly_savings, profile.avg_return, years)
-            effective_future_value = calculate_future_value(monthly_savings, profile.effective_return, years)
+            avg_future_value = calculate_future_value(investment_budget, profile.avg_return, years)
+            effective_future_value = calculate_future_value(investment_budget, profile.effective_return, years)
             
-            total_contributions = monthly_savings * years * 12
+            total_contributions = investment_budget * years * 12
             avg_interest_earned = avg_future_value - total_contributions
             effective_interest_earned = effective_future_value - total_contributions
             
             projection = {
                 "years": years,
-                "monthly_contribution": round(monthly_savings, 2),
+                "monthly_contribution": round(investment_budget, 2),
                 "total_contributions": round(total_contributions, 2),
                 "avg_annual_return": round(profile.avg_return * 100, 2),
                 "volatility": round(profile.volatility * 100, 2),
@@ -114,7 +115,7 @@ def calculate_investment_projections(monthly_savings: float, years_list: List[in
         }
     
     return {
-        "monthly_savings": monthly_savings,
+        "investment_budget": investment_budget,
         "profiles": projections,
         "assumptions": {
             "contribution_frequency": "Monthly (end of month)",
@@ -123,37 +124,37 @@ def calculate_investment_projections(monthly_savings: float, years_list: List[in
             "inflation_adjustment": "Not included (nominal returns)",
             "fees_included": "No (assumes net-of-fee returns)"
         },
-        "recommendations": _generate_investment_recommendations(monthly_savings, projections)
+        "recommendations": _generate_investment_recommendations(investment_budget, projections)
     }
 
-def _generate_investment_recommendations(monthly_savings: float, projections: Dict) -> List[str]:
-    """Generate personalized investment recommendations based on savings amount"""
+def _generate_investment_recommendations(investment_budget: float, projections: Dict) -> List[str]:
+    """Generate personalized investment recommendations based on investment budget amount"""
     recommendations = []
     
     # Tax-free savings account recommendation (South African context)
-    if monthly_savings <= 2916.67:  # R35,000 annual limit / 12 months
+    if investment_budget <= 2916.67:  # R35,000 annual limit / 12 months
         recommendations.append(
-            f"Consider maximizing your Tax-Free Savings Account (TFSA) first - you can invest up to R{monthly_savings * 12:,.0f} per year tax-free"
+            f"Consider maximizing your Tax-Free Savings Account (TFSA) first - you can invest up to R{investment_budget * 12:,.0f} per year tax-free"
         )
     else:
         recommendations.append(
             "Consider maxing out your TFSA (R35,000/year) first, then invest the remaining R{:,.0f}/month in other accounts".format(
-                monthly_savings - 2916.67
+                investment_budget - 2916.67
             )
         )
     
     # Portfolio recommendations based on amount
-    if monthly_savings < 500:
+    if investment_budget < 500:
         recommendations.append(
             "With smaller amounts, consider low-cost index funds or ETFs to minimize fees"
         )
-    elif monthly_savings < 2000:
+    elif investment_budget < 2000:
         recommendations.append(
             "You have good investment capacity - consider a diversified portfolio across multiple asset classes"
         )
     else:
         recommendations.append(
-            "With substantial monthly savings, consider consulting with a financial advisor for personalized portfolio construction"
+            "With substantial monthly investment budget, consider consulting with a financial advisor for personalized portfolio construction"
         )
     
     # Time horizon recommendations
@@ -167,42 +168,85 @@ def _generate_investment_recommendations(monthly_savings: float, projections: Di
     
     return recommendations
 
-def get_investment_analysis(available_monthly_amount: float) -> Dict:
+def get_investment_analysis(
+    total_available_income: float,      # UPDATED: Total available income
+    investment_allocation_ratio: float  # NEW: 0.0 to 1.0 (e.g., 0.3 = 30% to investment)
+) -> Dict:
     """
-    Main function to get investment analysis
-    Returns comprehensive investment projections and recommendations
+    Main function to get investment analysis with debt/investment split support
+    UPDATED VERSION - now uses allocation ratios instead of absolute amounts
     """
     try:
-        if available_monthly_amount is None or available_monthly_amount < 0:
+        # Calculate actual investment budget from ratio
+        investment_budget = total_available_income * investment_allocation_ratio
+        
+        print(f"💰 Total available income: R{total_available_income:.2f}")
+        print(f"📊 Investment allocation ratio: {investment_allocation_ratio*100:.1f}%")
+        print(f"📈 Investment budget: R{investment_budget:.2f}")
+        
+        if total_available_income is None or total_available_income < 0:
             return {
-                "error": "Invalid monthly amount provided",
-                "monthly_amount": available_monthly_amount
+                "error": "Invalid total available income provided",
+                "total_available_income": total_available_income,
+                "investment_allocation_ratio": investment_allocation_ratio
             }
         
-        if available_monthly_amount == 0:
+        if investment_allocation_ratio < 0 or investment_allocation_ratio > 1:
             return {
-                "message": "No funds available for investment",
+                "error": "Investment allocation ratio must be between 0.0 and 1.0",
+                "total_available_income": total_available_income,
+                "investment_allocation_ratio": investment_allocation_ratio
+            }
+        
+        if investment_budget == 0:
+            return {
+                "message": "No funds allocated for investment",
                 "recommendations": [
-                    "Focus on building an emergency fund first",
-                    "Look for ways to reduce expenses or increase income",
-                    "Even small amounts (R50-100/month) can grow significantly over time"
+                    "Consider allocating some budget to investment for long-term growth",
+                    "Even small amounts (R50-100/month) can grow significantly over time",
+                    "Review your debt/investment allocation strategy"
                 ],
-                "monthly_amount": 0
+                "total_available_income": total_available_income,
+                "investment_allocation_ratio": investment_allocation_ratio,
+                "investment_budget": 0
             }
         
-        # Calculate projections
-        projections = calculate_investment_projections(available_monthly_amount)
+        # Calculate projections using the allocated investment budget
+        projections = calculate_investment_projections(investment_budget)
+        
+        # Add allocation information to the result
+        projections.update({
+            "total_available_income": total_available_income,
+            "investment_allocation_ratio": investment_allocation_ratio,
+            "allocation_info": {
+                "percentage_to_investment": round(investment_allocation_ratio * 100, 1),
+                "monthly_amount_invested": round(investment_budget, 2),
+                "annual_amount_invested": round(investment_budget * 12, 2)
+            }
+        })
         
         return projections
         
     except Exception as e:
         return {
             "error": f"Error calculating investment projections: {str(e)}",
-            "monthly_amount": available_monthly_amount
+            "total_available_income": total_available_income,
+            "investment_allocation_ratio": investment_allocation_ratio
         }
+
+# For backwards compatibility
+def get_investment_analysis_legacy(available_monthly_amount: float) -> Dict:
+    """Legacy function for backwards compatibility - assumes 100% allocation to investment."""
+    return get_investment_analysis(
+        total_available_income=available_monthly_amount,
+        investment_allocation_ratio=1.0  # 100% to investment
+    )
 
 if __name__ == "__main__":
     # Test with example
     import json
-    result = get_investment_analysis(1500)
+    result = get_investment_analysis(
+        total_available_income=2000,
+        investment_allocation_ratio=0.3  # 30% to investment = R600
+    )
     print(json.dumps(result, indent=2))

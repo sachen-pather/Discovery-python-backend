@@ -1,15 +1,15 @@
-Date,Description,Amount (ZAR),Balance (ZAR),Category
-2025-07-01,Account Maintenance Fee,-5.0,20.0,Administrative
-2025-07-05,SASSA Child Grant (2 ch.),1120.0,1140.0,Other
-2025-07-05,Shoprite Groceries,-720.0,420.0,Groceries
-2025-07-06,ATM Withdrawal,-200.0,220.0,Other
-2025-07-06,ATM Fee,-2.0,218.0,Administrative
-2025-07-06,Vodacom Airtime,-20.0,198.0,Subscriptions
-2025-07-12,EFT – Child Maintenance,500.0,698.0,Other
-2025-07-13,Boxer Groceries,-350.0,348.0,Groceries
-2025-07-14,Ackermans Kids Clothes,-120.0,228.0,Shopping
-2025-07-20,Local Taxi Fare,-80.0,148.0,Transport
-2025-07-25,Salary – Part-Time,3000.0,3148.0,Other
-2025-07-26,Rent – Flat,-800.0,2348.0,Rent/Mortgage
-2025-07-26,Pick n Pay Groceries,-600.0,1748.0,Other
-2025-07-26,Prepaid Electricity,-100.0,1648.0,Subscriptions
+Date,Description,Amount (ZAR),Balance (ZAR),Category,IsDebtPayment,DebtKind,DebtName
+2025-07-01,Account Maintenance Fee,-5.0,20.0,Administrative,False,,
+2025-07-05,SASSA Child Grant (2 ch.),1120.0,1140.0,Debt Payments,True,,SASSA Child Grant
+2025-07-05,Shoprite Groceries,-720.0,420.0,Groceries,False,,
+2025-07-06,ATM Withdrawal,-200.0,220.0,Other,False,,
+2025-07-06,ATM Fee,-2.0,218.0,Administrative,False,,
+2025-07-06,Vodacom Airtime,-20.0,198.0,Subscriptions,False,,
+2025-07-12,EFT – Child Maintenance,500.0,698.0,Income,False,,
+2025-07-13,Boxer Groceries,-350.0,348.0,Groceries,False,,
+2025-07-14,Ackermans Kids Clothes,-120.0,228.0,Shopping,False,,
+2025-07-20,Local Taxi Fare,-80.0,148.0,Transport,False,,
+2025-07-25,Salary – Part-Time,3000.0,3148.0,Income,False,,
+2025-07-26,Rent – Flat,-800.0,2348.0,Rent/Mortgage,False,,
+2025-07-26,Pick n Pay Groceries,-600.0,1748.0,Groceries,False,,
+2025-07-26,Prepaid Electricity,-100.0,1648.0,Subscriptions,False,,
