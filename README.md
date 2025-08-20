@@ -1,24 +1,24 @@
 To view the prototype in action - click on the URL
 
-# 🏦 Enhanced Financial Analyzer
+#  Enhanced Financial Analyzer
 
 A comprehensive financial analysis system that transforms bank statements into actionable insights using AI-powered categorization, debt optimization strategies, and investment projections tailored for South African financial markets.
 
-## 🚀 Features
+##  Features
 
-### 📊 **Smart Transaction Categorization**
+###  **Smart Transaction Categorization**
 - **AI-Powered Classification**: Uses OpenAI GPT-4o-mini and Groq Llama-3.1-70b for intelligent transaction categorization
 - **South African Context**: Recognizes local banks, merchants, and payment patterns (Shoprite, Pick n Pay, SASSA, etc.)
 - **Rule-Based Fallback**: Robust backup system for when AI services are unavailable
 - **PDF & CSV Support**: Automatically extracts data from bank statement PDFs or processes CSV files
 
-### 💰 **Enhanced Budget Analysis**
+###  **Enhanced Budget Analysis**
 - **Protected Categories System**: Automatically identifies and protects fixed obligations (debt payments, rent) from optimization
 - **Weighted Optimization**: Income bracket-aware suggestions based on South African household spending patterns
 - **Realistic Constraints**: Location-specific expense ratios and culturally relevant reduction strategies
 - **Action Plans**: Prioritized immediate, short-term, and long-term financial improvement steps
 
-### 📈 **Advanced Debt Optimization**
+###  **Advanced Debt Optimization**
 - **Current Payment Detection**: Automatically finds existing debt payments in your bank statements
 - **Multi-Strategy Analysis**: 
   - **Avalanche Method**: Pay high-interest debts first (saves most money)
@@ -26,13 +26,13 @@ A comprehensive financial analysis system that transforms bank statements into a
 - **Interest Savings Calculator**: Shows potential savings vs minimum payments only
 - **Comprehensive Debt Tracking**: Balance, APR, current vs minimum payments
 
-### 💎 **Investment Projections**
+###  **Investment Projections**
 - **Risk-Adjusted Returns**: Conservative, moderate, and aggressive portfolio projections
 - **TFSA Integration**: Tax-Free Savings Account recommendations (R35,000 annual limit)
 - **Compound Growth Modeling**: Future value calculations with volatility adjustments
 - **South African Context**: Local investment considerations and tax implications
 
-## 🏗️ Architecture
+## 🏗 Architecture
 
 ```mermaid
 graph TB
@@ -41,41 +41,41 @@ graph TB
     
     %% Frontend Layer
     subgraph Frontend["Frontend Layer - React (Netlify)"]
-        A["📱 React App<br/>Mobile UI Simulation<br/>Tailwind CSS, Vite"]
-        B["🗂️ Tab Navigation<br/>Budget | Debt | Investment<br/>Comprehensive Analysis"]
-        C["📤 File Upload<br/>CSV & PDF Support<br/>Debt CSV Upload"]
-        D["💬 Chat Interface<br/>Financial Guidance<br/>AI-powered Insights"]
+        A[" React App<br/>Mobile UI Simulation<br/>Tailwind CSS, Vite"]
+        B[" Tab Navigation<br/>Budget | Debt | Investment<br/>Comprehensive Analysis"]
+        C[" File Upload<br/>CSV & PDF Support<br/>Debt CSV Upload"]
+        D[" Chat Interface<br/>Financial Guidance<br/>AI-powered Insights"]
     end
 
     %% Backend Layer
     subgraph Backend["Backend Layer - Python Flask (Azure App Service)"]
-        E["🔧 Flask API<br/>/upload-csv | /upload-pdf<br/>/upload-debt-csv | /health<br/>/debt-analysis | /investment-analysis"]
-        F["📊 Budget Analyzer<br/>Enhanced Categorization<br/>Protected Categories<br/>Weighted Optimization"]
-        G["💳 Debt Optimizer<br/>Avalanche/Snowball<br/>Current Payment Detection<br/>Multi-strategy Analysis"]
-        H["📈 Investment Analyzer<br/>Portfolio Projections<br/>Risk Profiles<br/>TFSA Recommendations"]
-        I["💾 Data Processing<br/>CSV Generation<br/>Transaction Pipeline"]
+        E[" Flask API<br/>/upload-csv | /upload-pdf<br/>/upload-debt-csv | /health<br/>/debt-analysis | /investment-analysis"]
+        F[" Budget Analyzer<br/>Enhanced Categorization<br/>Protected Categories<br/>Weighted Optimization"]
+        G[" Debt Optimizer<br/>Avalanche/Snowball<br/>Current Payment Detection<br/>Multi-strategy Analysis"]
+        H[" Investment Analyzer<br/>Portfolio Projections<br/>Risk Profiles<br/>TFSA Recommendations"]
+        I[" Data Processing<br/>CSV Generation<br/>Transaction Pipeline"]
     end
 
     %% AI Processing Layer
     subgraph AI["AI Processing Layer"]
-        J["📄 PDF Extractor<br/>PyMuPDF + AI<br/>Bank Statement Parsing<br/>Manual Fallback"]
-        K["🧠 LLM Categorizer<br/>OpenAI GPT-4o-mini<br/>Groq Llama-3.1-70b<br/>Smart Transaction Sorting"]
-        L["🔍 Rule-based Fallback<br/>South African Context<br/>Local Bank Recognition<br/>Debt Detection"]
-        M["💬 Enhanced Chat<br/>Financial Advice<br/>Context-aware AI"]
+        J[" PDF Extractor<br/>PyMuPDF + AI<br/>Bank Statement Parsing<br/>Manual Fallback"]
+        K[" LLM Categorizer<br/>OpenAI GPT-4o-mini<br/>Groq Llama-3.1-70b<br/>Smart Transaction Sorting"]
+        L[" Rule-based Fallback<br/>South African Context<br/>Local Bank Recognition<br/>Debt Detection"]
+        M[" Enhanced Chat<br/>Financial Advice<br/>Context-aware AI"]
     end
 
     %% External Services
     subgraph External["External APIs"]
-        N["🌐 OpenAI API<br/>GPT-4o-mini<br/>Transaction Categorization<br/>PDF Text Processing"]
-        O["⚡ Groq API<br/>Llama-3.1-70b<br/>Fast LLM Processing<br/>Backup Provider"]
-        P["🤖 Google Gemini<br/>Conversational AI<br/>Financial Guidance"]
+        N[" OpenAI API<br/>GPT-4o-mini<br/>Transaction Categorization<br/>PDF Text Processing"]
+        O[" Groq API<br/>Llama-3.1-70b<br/>Fast LLM Processing<br/>Backup Provider"]
+        P[" Google Gemini<br/>Conversational AI<br/>Financial Guidance"]
     end
 
     %% Data Layer
     subgraph Data["Data Layer"]
-        Q["📁 File Storage<br/>uploads/ directory<br/>output/ directory<br/>Temporary Processing"]
-        R["📋 Categories<br/>Income | Debt Payments<br/>Groceries | Transport<br/>Protected vs Reducible"]
-        S["💰 Debt Tracking<br/>Balance | APR | Payments<br/>Current vs Minimum<br/>Payoff Strategies"]
+        Q[" File Storage<br/>uploads/ directory<br/>output/ directory<br/>Temporary Processing"]
+        R[" Categories<br/>Income | Debt Payments<br/>Groceries | Transport<br/>Protected vs Reducible"]
+        S[" Debt Tracking<br/>Balance | APR | Payments<br/>Current vs Minimum<br/>Payoff Strategies"]
     end
 
     %% User Interactions
@@ -153,7 +153,7 @@ graph TB
     class User user
 ```
 
-## 🛠️ Tech Stack
+## 🛠 Tech Stack
 
 ### Backend (Python Flask)
 - **Framework**: Flask 2.3.3 with CORS support
@@ -276,7 +276,7 @@ curl -X POST \
   http://localhost:5000/debt-analysis
 ```
 
-## 📊 Data Formats
+## Data Formats
 
 ### Bank Statement CSV Format
 ```csv
@@ -349,7 +349,7 @@ az webapp deployment source config \
 3. Set publish directory: `dist`
 4. Add environment variable: `VITE_API_URL=https://your-backend.azurewebsites.net`
 
-## 🧪 Testing
+##  Testing
 
 ### Run Backend Tests
 ```bash
@@ -367,14 +367,14 @@ The repository includes sample files:
 - `sample_debts.csv`: Example debt information
 - `sample_bank_statement.pdf`: Example PDF statement
 
-## 🔒 Security & Privacy
+##  Security & Privacy
 
 - **Data Processing**: All financial data is processed locally and temporarily
 - **File Cleanup**: Uploaded files are automatically deleted after processing
 - **API Security**: CORS configured for frontend-backend communication
 - **No Data Storage**: No persistent storage of personal financial information
 
-## 🌍 South African Financial Context
+##  South African Financial Context
 
 ### Supported Features
 - **Currency**: South African Rand (ZAR)
@@ -390,7 +390,7 @@ The repository includes sample files:
 - Middle: R15,000 - R25,000/month
 - Upper-Middle: R25,000+/month
 
-## 🤝 Contributing
+##  Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -398,17 +398,17 @@ The repository includes sample files:
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📝 License
+##  License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🆘 Support
+##  Support
 
 - **Documentation**: Check the `/docs` folder for detailed guides
 - **Issues**: Report bugs via GitHub Issues
 - **API Status**: Check `/health` endpoint for system status
 
-## 🔮 Roadmap
+##  Roadmap
 
 - [ ] Mobile app (React Native)
 - [ ] Advanced investment recommendations
@@ -418,5 +418,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] Goal tracking and progress monitoring
 
 ---
-
-**Built with ❤️ for the South African financial community**
